@@ -1,10 +1,52 @@
-name: Actions Runner Controller Demo
+name: Test Auto Scaling Behavior
+
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  Explore-GitHub-Actions:
-    runs-on: arc-runner-set
-    steps:
-    - run: echo "🎉 This job uses runner scale set runners!"
+  test-autoscaling:
+    runs-on: self-hosted
 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Record cluster status before workload
+        run: |
+          echo "=== Cluster status BEFORE workload ===" > cluster_status.txt
+          echo ">> Nodes:" >> cluster_status.txt
+          kubectl get nodes -o wide >> cluster_status.txt
+          echo ">> Pods (all namespaces):" >> cluster_status.txt
+          kubectl get pods -A >> cluster_status.txt
+          echo ">> Node metrics:" >> cluster_status.txt
+          kubectl top nodes >> cluster_status.txt || echo "kubectl top nodes not available" >> cluster_status.txt
+
+      - name: Simulate workload
+        run: |
+          echo "Simulating workload..."
+          # Optionally install stress-ng if not available.
+          if ! command -v stress-ng &> /dev/null; then
+            echo "Installing stress-ng..."
+            sudo apt-get update && sudo apt-get install -y stress-ng
+          fi
+          # Run a CPU stress test for 60 seconds with 2 workers.
+          stress-ng --cpu 2 --timeout 60s
+
+      - name: Record cluster status after workload
+        run: |
+          echo "=== Cluster status AFTER workload ===" >> cluster_status.txt
+          echo ">> Nodes:" >> cluster_status.txt
+          kubectl get nodes -o wide >> cluster_status.txt
+          echo ">> Pods (all namespaces):" >> cluster_status.txt
+          kubectl get pods -A >> cluster_status.txt
+          echo ">> Node metrics:" >> cluster_status.txt
+          kubectl top nodes >> cluster_status.txt || echo "kubectl top nodes not available" >> cluster_status.txt
+
+      - name: Upload cluster status log
+        uses: actions/upload-artifact@v3
+        with:
+          name: cluster-status-log
+          path: cluster_status.txt
