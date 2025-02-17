@@ -1,0 +1,56 @@
+name: Test High Load Auto Scaling
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-high-load:
+    strategy:
+      matrix:
+        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    runs-on: arc-runner-set
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Install stress-ng
+        run: |
+          sudo apt-get update && sudo apt-get install -y stress-ng
+
+      - name: Record cluster status BEFORE workload
+        run: |
+          echo "=== Instance ${{ matrix.instance }}: Cluster status BEFORE workload ===" > cluster_status_${{ matrix.instance }}.txt
+          echo ">> Nodes:" >> cluster_status_${{ matrix.instance }}.txt
+          kubectl get nodes -o wide >> cluster_status_${{ matrix.instance }}.txt
+          echo ">> Pods (all namespaces):" >> cluster_status_${{ matrix.instance }}.txt
+          kubectl get pods -A >> cluster_status_${{ matrix.instance }}.txt
+          echo ">> Node metrics:" >> cluster_status_${{ matrix.instance }}.txt
+          kubectl top nodes >> cluster_status_${{ matrix.instance }}.txt || echo "kubectl top nodes not available" >> cluster_status_${{ matrix.instance }}.txt
+
+      - name: Simulate workload
+        run: |
+          echo "Instance ${{ matrix.instance }}: Running stress test..."
+          stress-ng --cpu 2 --timeout 60s
+
+      - name: Record cluster status AFTER workload
+        run: |
+          echo "=== Instance ${{ matrix.instance }}: Cluster status AFTER workload ===" >> cluster_status_${{ matrix.instance }}.txt
+          echo ">> Nodes:" >> cluster_status_${{ matrix.instance }}.txt
+          kubectl get nodes -o wide >> cluster_status_${{ matrix.instance }}.txt
+          echo ">> Pods (all namespaces):" >> cluster_status_${{ matrix.instance }}.txt
+          kubectl get pods -A >> cluster_status_${{ matrix.instance }}.txt
+          echo ">> Node metrics:" >> cluster_status_${{ matrix.instance }}.txt
+          kubectl top nodes >> cluster_status_${{ matrix.instance }}.txt || echo "kubectl top nodes not available" >> cluster_status_${{ matrix.instance }}.txt
+
+      - name: Upload cluster status log
+        uses: actions/upload-artifact@v4
+        with:
+          name: cluster-status-log-${{ matrix.instance }}
+          path: cluster_status_${{ matrix.instance }}.txt
