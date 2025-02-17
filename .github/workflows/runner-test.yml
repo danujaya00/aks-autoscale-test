@@ -46,7 +46,7 @@ jobs:
           kubectl top nodes >> cluster_status.txt || echo "kubectl top nodes not available" >> cluster_status.txt
 
       - name: Upload cluster status log
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cluster-status-log
           path: cluster_status.txt
