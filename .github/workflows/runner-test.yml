@@ -1,20 +1,10 @@
-name: Runners Auto Scale Test
+name: Actions Runner Controller Demo
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
-  run-heavy-task:
-    runs-on: self-hosted
-    strategy:
-      matrix:
-        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  Explore-GitHub-Actions:
+    runs-on: arc-runner-set
     steps:
-      - name: Simulate CPU Load
-        run: |
-          echo "Simulating CPU workload..."
-          dd if=/dev/zero of=/dev/null bs=1M count=100000 &
-          sleep 30
-          echo "Job finished."
+    - run: echo "🎉 This job uses runner scale set runners!"
+
