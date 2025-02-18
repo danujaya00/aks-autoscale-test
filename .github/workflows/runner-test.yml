@@ -1,12 +1,12 @@
 name: "Runner Scaling Test"
-on: workflow_dispatch # Allows manual triggering
+on: workflow_dispatch
 
 jobs:
   run-on-self-hosted:
-    runs-on: ["self-hosted", "linux"]
+    runs-on: arc-runner-set
     strategy:
       matrix:
-        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # 10 parallel jobs
+        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
       - name: Print runner details
         run: |
